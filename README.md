@@ -45,10 +45,14 @@ The purpose of this module is to convert the 'heavy' comment documentation forma
 
 # Usage
 This module is currently under development, and output is only shown on Terminal. To convert files:
-`python docconverter.py file1 [file2 ...]`
+```bash
+python docconverter.py file1 [file2 ...]
+```
 
 For example, if you want to convert include/freetype/freetype.h:
-`python docconverter.py include/freetype/freetype.h`
+```bash
+python docconverter.py include/freetype/freetype.h
+```
 
 # Development
 This module is a part of FreeType Google Summer of Code 2018. All files and code are licensed under the FreeType License.
