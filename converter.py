@@ -108,7 +108,8 @@ class Converter:
         self.ended = False
         self.indent = None
         self.format = None
-        self.tag_count = 0
+        self.return_new = True
+        self.column_started = False
 
     def convert(self, lines):
         """Perform conversion of old comment format to new commnet format
@@ -164,7 +165,7 @@ class Converter:
         # DEBUG
         #print(''.join(newlines))
 
-        if self.tag_count == 0:
+        if not self.return_new:
             # if there were no tags, return original list
             self.refresh()
             return lines
@@ -174,8 +175,15 @@ class Converter:
 
     def processLine(self):
         if self.format == 1:
+            if re_source_old_format.start.match(self.line) and not self.column_started:
+                # if the start line occurrs again this is a special
+                # comment block and should be retained
+                self.return_new = False
+
             m = re.search(re_source_old_format.column, self.line)
             if m:
+                #Set the column_started flag
+                self.column_started = True
                 # If the line is a documentation line
                 # Replace /* with * and remove */ from the end
                 self.line = re.sub(re_source_strline, ' *',self.line, 1)
@@ -208,7 +216,8 @@ class Converter:
         self.ended = False
         self.indent = None
         self.format = None
-        self.tag_count = 0
+        self.return_new = True
+        self.column_started = False
 
     def replaceTag(self):
         #print("Old line len = ",len(self.line))
@@ -216,7 +225,6 @@ class Converter:
         tagname = tags.group(1)
         newtag = '@' + tagname + ":"
         self.line = self.line[:tags.start()] + newtag + self.line[tags.end():]
-        self.tag_count += 1
 
 if __name__ == "__main__":
     s = r'''
@@ -245,3 +253,4 @@ if __name__ == "__main__":
     newlines = c.convert(lines)
 
     print(''.join(newlines))
+    
