@@ -44,7 +44,7 @@ def  main( argv ):
         sys.exit( 1 )
 
     # process options
-    output_dir     = None
+    output_dir     = "include_mod"
 
     for opt in opts:
         if opt[0] in ( "-h", "--help" ):
@@ -62,7 +62,8 @@ def  main( argv ):
     # retrieve the list of files to process
     file_list = make_file_list( args )
     for filename in file_list:
-        source_processor.parse_file( filename )
+        blocks = source_processor.parse_file( filename )
+        write_to_file(blocks, filename)
 # if called from the command line
 if __name__ == '__main__':
     main( sys.argv )

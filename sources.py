@@ -117,132 +117,6 @@ re_source_block_format2 = SourceBlockFormat( 2, start, column, end )
 #
 re_source_block_formats = [re_source_block_format1, re_source_block_format2]
 
-
-#
-# The following regular expressions correspond to markup tags within the
-# documentation comment blocks.  They are equivalent despite their different
-# syntax.
-#
-# A markup tag consists of letters or character `-', to be found in group 1.
-#
-# Notice that a markup tag _must_ begin a new paragraph.
-#
-re_markup_tag1 = re.compile( r'''\s*<((?:\w|-)*)>''' )  # <xxxx> format
-re_markup_tag2 = re.compile( r'''\s*@((?:\w|-)*):''' )  # @xxxx: format
-
-#
-# The list of supported markup tags.  We could add new ones quite easily.
-#
-re_markup_tags = [re_markup_tag1, re_markup_tag2]
-
-
-#
-# A regular expression to detect a cross reference, after markup tags have
-# been stripped off.
-#
-# Two syntax forms are supported:
-#
-#   @<name>
-#   @<name>[<id>]
-#
-# where both `<name>' and `<id>' consist of alphanumeric characters, `_',
-# and `-'.  Use `<id>' if there are multiple, valid `<name>' entries.
-#
-# Example: @foo[bar]
-#
-re_crossref = re.compile( r"""
-                            @
-                            (?P<name>(?:\w|-)+
-                                     (?:\[(?:\w|-)+\])?)
-                            (?P<rest>.*)
-                          """, re.VERBOSE )
-
-#
-# Two regular expressions to detect italic and bold markup, respectively.
-# Group 1 is the markup, group 2 the rest of the line.
-#
-# Note that the markup is limited to words consisting of letters, digits,
-# the characters `_' and `-', or an apostrophe (but not as the first
-# character).
-#
-re_italic = re.compile( r"_((?:\w|-)(?:\w|'|-)*)_(.*)" )     #  _italic_
-re_bold   = re.compile( r"\*((?:\w|-)(?:\w|'|-)*)\*(.*)" )   #  *bold*
-
-#
-# This regular expression code to identify an URL has been taken from
-#
-#   https://mail.python.org/pipermail/tutor/2002-September/017228.html
-#
-# (with slight modifications).
-#
-urls = r'(?:https?|telnet|gopher|file|wais|ftp)'
-ltrs = r'\w'
-gunk = r'/#~:.?+=&%@!\-'
-punc = r'.:?\-'
-any  = "%(ltrs)s%(gunk)s%(punc)s" % { 'ltrs' : ltrs,
-                                      'gunk' : gunk,
-                                      'punc' : punc }
-url  = r"""
-         (
-           \b                    # start at word boundary
-           %(urls)s :            # need resource and a colon
-           [%(any)s] +?          # followed by one or more of any valid
-                                 # character, but be conservative and
-                                 # take only what you need to...
-           (?=                   # [look-ahead non-consumptive assertion]
-             [%(punc)s]*         # either 0 or more punctuation
-             (?:                 # [non-grouping parentheses]
-               [^%(any)s] | $    # followed by a non-url char
-                                 # or end of the string
-             )
-           )
-         )
-        """ % {'urls' : urls,
-               'any'  : any,
-               'punc' : punc }
-
-re_url = re.compile( url, re.VERBOSE | re.MULTILINE )
-
-#
-# A regular expression that stops collection of comments for the current
-# block.
-#
-re_source_sep = re.compile( r'\s*/\*\s*\*/' )   #  /* */
-
-#
-# A regular expression to find possible C identifiers while outputting
-# source code verbatim, covering things like `*foo' or `(bar'.  Group 1 is
-# the prefix, group 2 the identifier -- since we scan lines from left to
-# right, sequentially splitting the source code into prefix and identifier
-# is fully sufficient for our purposes.
-#
-re_source_crossref = re.compile( r'(\W*)(\w*)' )
-
-#
-# A regular expression that matches a list of reserved C source keywords.
-#
-re_source_keywords = re.compile( '''\\b ( typedef   |
-                                          struct    |
-                                          enum      |
-                                          union     |
-                                          const     |
-                                          char      |
-                                          int       |
-                                          short     |
-                                          long      |
-                                          void      |
-                                          signed    |
-                                          unsigned  |
-                                          \#include |
-                                          \#define  |
-                                          \#undef   |
-                                          \#if      |
-                                          \#ifdef   |
-                                          \#ifndef  |
-                                          \#else    |
-                                          \#endif   ) \\b''', re.VERBOSE )
-
-
 ################################################################
 ##
 ##  SOURCE BLOCK CLASS
@@ -258,58 +132,18 @@ re_source_keywords = re.compile( '''\\b ( typedef   |
 ##      other blocks (i.e., sources or ordinary comments with no starting
 ##      markup tag)
 ##
-class  SourceBlock:
+line_num = 1
+class SourceBlock:
 
-    def  __init__( self, processor, filename, lineno, lines ):
-        self.processor = processor
+    def __init__( self, filename, lineno, lines ):
+        global line_num
         self.filename  = filename
         self.lineno    = lineno
         self.lines     = lines[:]
-        self.format    = processor.format
         self.content   = []
-
-        if self.format == None:
-            return
-
-        words = []
-
-        # extract comment lines
-        lines = []
-
-        for line0 in self.lines:
-            m = self.format.column.match( line0 )
-            if m:
-                lines.append( m.group( 1 ) )
-
-        # now, look for a markup tag
-        for l in lines:
-            l = l.strip()
-            if len( l ) > 0:
-                for tag in re_markup_tags:
-                    if tag.match( l ):
-                        self.content = lines
-                        # DEBUG
-                        #print(' '.join([i.strip() for i in lines]))
-                        return
-
-    def  location( self ):
-        return "(" + self.filename + ":" + repr( self.lineno ) + ")"
-
-    # debugging only -- not used in normal operations
-    def  dump( self ):
-        if self.content:
-            print( "{{{content start---" )
-            for l in self.content:
-                print( l )
-            print( "---content end}}}" )
-            return
-
-        fmt = ""
-        if self.format:
-            fmt = repr( self.format.id ) + " "
-
-        for line in self.lines:
-            print( line )
+        # for i in lines:
+        #     print(line_num, i, end='')
+        #     line_num += 1
 
 
 ################################################################
@@ -392,7 +226,7 @@ class  SourceProcessor:
 
         # record the last lines
         self.add_block_lines()
-        
+        return self.blocks
 
         
 
@@ -410,8 +244,7 @@ class  SourceProcessor:
     def  add_block_lines( self ):
         """Add the current accumulated lines and create a new block."""
         if self.lines != []:
-            block = SourceBlock( self,
-                                 self.filename,
+            block = SourceBlock( self.filename,
                                  self.lineno,
                                  self.lines )
 
@@ -422,8 +255,8 @@ class  SourceProcessor:
     def  convert_comment( self ):
         """Get converted comment block and write back to file"""
         if self.lines != []:
-            self.modline = self.converter.convert(self.lines)
-            print(''.join(self.modline))
+            self.lines = self.converter.convert(self.lines)
+            #print(''.join(self.lines))
 
     # debugging only, not used in normal operations
     def  dump( self ):

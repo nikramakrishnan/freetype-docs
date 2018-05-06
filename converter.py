@@ -129,6 +129,7 @@ class Converter:
         self.ended = False
         self.indent = None
         self.format = None
+        self.tag_count = 0
 
     def convert(self, lines):
         """Perform conversion of old comment format to new commnet format
@@ -145,6 +146,7 @@ class Converter:
                 if re_source_old_format.start.match(self.line):
                     # If line matches start or end of old comment block
                     self.format = 1
+
                     if not self.started:
                         # If we're not already in a block
                         # This is to differentiate between the first
@@ -161,7 +163,7 @@ class Converter:
                     #Get indent value
                     self.indent = len(re.match(r'(\s*)', self.line).group(1))
                 else:
-                    print("Unknown format received")
+                    pass
             
             else:
                 # If it is a normal line
@@ -182,7 +184,13 @@ class Converter:
                 newlines.append(endline)
         # DEBUG
         #print(''.join(newlines))
+
+        if self.tag_count == 0:
+            # if there were no tags, return original list
+            self.refresh()
+            return lines
         self.refresh()
+        # return the changed list
         return newlines
 
     def processLine(self):
@@ -203,12 +211,10 @@ class Converter:
                 # Replace the last line
                 # We match with start because end is tailored
                 # to replace it with the new format
-                print("Block end identified")
                 self.line = re.sub(re_source_old_format.end, ' */\n', self.line)
                 self.ended = True
 
         if self.format == 2 and re_source_new_format.end.match(self.line):
-            print("New block has ended")
             self.ended = True
 
         if re.search(old_markup_tag, self.line):
@@ -223,6 +229,7 @@ class Converter:
         self.ended = False
         self.indent = None
         self.format = None
+        self.tag_count = 0
 
     def replaceTag(self):
         #print("Old line len = ",len(self.line))
@@ -230,8 +237,9 @@ class Converter:
         tagname = tags.group(1)
         newtag = '@' + tagname + ":"
         self.line = self.line[:tags.start()] + newtag + self.line[tags.end():]
+        self.tag_count += 1
 
 
-#c = Converter()
+c = Converter()
 
-#c.convert(lines)
+c.convert(lines)

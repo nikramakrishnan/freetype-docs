@@ -12,7 +12,7 @@
 #  this file you indicate that you have read the license and
 #  understand and accept it fully.
 
-
+from __future__ import print_function
 import string, sys, os, glob, itertools
 
 
@@ -124,4 +124,12 @@ def  make_file_list( args = None ):
 
     return file_list
 
+def write_to_file( blocks, filename ):
+    """Write list of blocks to file `filename`"""
+    line_num = 1
+    for block in blocks:
+        lines = block.lines
+        for i in lines:
+            print(line_num, '\t', i, end='', sep='')
+            line_num += 1
 # eof
