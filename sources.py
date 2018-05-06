@@ -29,7 +29,7 @@
 #
 
 
-import fileinput, re, string
+import fileinput, re, string, converter
 
 
 ################################################################
@@ -289,7 +289,7 @@ class  SourceBlock:
                     if tag.match( l ):
                         self.content = lines
                         # DEBUG
-                        print(' '.join([i.strip() for i in lines]))
+                        #print(' '.join([i.strip() for i in lines]))
                         return
 
     def  location( self ):
@@ -335,6 +335,8 @@ class  SourceProcessor:
         self.filename = None
         self.format   = None
         self.lines    = []
+        self.converter = converter.Converter()
+        self.modline = None
     def  reset( self ):
         """Reset a block processor and clean up all its blocks."""
         self.blocks = []
@@ -351,12 +353,14 @@ class  SourceProcessor:
         self.format = None
         self.lineno = 0
         self.lines  = []
-
+        self.endlineno = 0
         for line in fileinput.input( filename ):
             # strip trailing newlines, important on Windows machines!
-            if line[-1] == '\012':
-                line = line[0:-1]
-
+            # if line[-1] == '\012':
+            #     line = line[0:-1]
+            #     print(line)
+            # DEBUG
+            # print("self.format =", self.format ,line, end ='')
             if self.format == None:
                 self.process_normal_line( line )
             else:
@@ -364,6 +368,11 @@ class  SourceProcessor:
                     # A normal block end.  Add it to `lines' and create a
                     # new block
                     self.lines.append( line )
+                    # DEBUG
+                    #print(self.lines)
+                    self.endlineno = fileinput.filelineno()
+                    # CALL TO REPLACE COMMENT FORMAT
+                    self.convert_comment()
                     self.add_block_lines()
                 elif self.format.column.match( line ):
                     # A normal column line.  Add it to `lines'.
@@ -371,6 +380,11 @@ class  SourceProcessor:
                 else:
                     # An unexpected block end.  Create a new block, but
                     # don't process the line.
+                    # DEBUG
+                    #print(self.lines)
+                    self.endlineno = fileinput.filelineno()
+                    # CALL TO REPLACE COMMENT FORMAT
+                    self.convert_comment()
                     self.add_block_lines()
 
                     # we need to process the line again
@@ -378,6 +392,7 @@ class  SourceProcessor:
 
         # record the last lines
         self.add_block_lines()
+        
 
         
 
@@ -403,6 +418,12 @@ class  SourceProcessor:
             self.blocks.append( block )
             self.format = None
             self.lines  = []
+
+    def  convert_comment( self ):
+        """Get converted comment block and write back to file"""
+        if self.lines != []:
+            self.modline = self.converter.convert(self.lines)
+            print(''.join(self.modline))
 
     # debugging only, not used in normal operations
     def  dump( self ):
