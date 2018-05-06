@@ -59,7 +59,7 @@ This is in initial stages, and there may be many changes left.
 
 What it does:
   - Converts 'heavy' comments to 'light' comments
-  - Preserves (does not change) comments that do not have any markup tags in them
+  - Preserves (does not change) 'special' comment blocks like [include/freetype/freetype.h#L384](include/freetype/freetype.h#L384)
   - Shows output on the terminal with line numbers
   
 What it doesn't do:
