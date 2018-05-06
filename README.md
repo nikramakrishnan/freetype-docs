@@ -55,4 +55,15 @@ python docconverter.py include/freetype/freetype.h
 ```
 
 # Development
+This is in initial stages, and there may be many changes left.
+
+What it does:
+  - Converts 'heavy' comments to 'light' comments
+  - Preserves (does not change) comments that do not have any markup tags in them
+  - Shows output on the terminal with line numbers
+  
+What it doesn't do:
+  - Write output to file
+
+# License
 This module is a part of FreeType Google Summer of Code 2018. All files and code are licensed under the FreeType License.
