@@ -12,27 +12,6 @@ try:
     from StringIO import StringIO
 except ImportError:
     from io import StringIO
-s = r'''
-  /*************************************************************************/
-  /*                                                                       */
-  /* <Section>                                                             */
-  /*    gzip                                                               */
-  /*                                                                       */
-  /* <Title>                                                               */
-  /*    GZIP Streams                                                       */
-  /*                                                                       */
-  /* <Abstract>                                                            */
-  /*    Using gzip-compressed font files.                                  */
-  /*                                                                       */
-  /* <Description>                                                         */
-  /*    This section contains the declaration of Gzip-specific functions.  */
-  /*                                                                       */
-  /*************************************************************************/
-  '''
-lines = []
-s =  StringIO(s)
-for line in s:
-    lines.append(line)
 
 ################################################################
 ##
@@ -239,7 +218,30 @@ class Converter:
         self.line = self.line[:tags.start()] + newtag + self.line[tags.end():]
         self.tag_count += 1
 
+if __name__ == "__main__":
+    s = r'''
+    /*************************************************************************/
+    /*                                                                       */
+    /* <Section>                                                             */
+    /*    gzip                                                               */
+    /*                                                                       */
+    /* <Title>                                                               */
+    /*    GZIP Streams                                                       */
+    /*                                                                       */
+    /* <Abstract>                                                            */
+    /*    Using gzip-compressed font files.                                  */
+    /*                                                                       */
+    /* <Description>                                                         */
+    /*    This section contains the declaration of Gzip-specific functions.  */
+    /*                                                                       */
+    /*************************************************************************/
+    '''
+    lines = []
+    s =  StringIO(s)
+    for line in s:
+        lines.append(line)
+    c = Converter()
 
-c = Converter()
+    newlines = c.convert(lines)
 
-c.convert(lines)
+    print(''.join(newlines))
