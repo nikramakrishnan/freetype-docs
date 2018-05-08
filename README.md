@@ -69,9 +69,10 @@ What it does:
   - Converts 'heavy' comments to 'light' comments
   - Preserves (does not change) 'special' comment blocks like [include/freetype/freetype.h#L384](include/freetype/freetype.h#L384)
   - Shows output on the terminal with line numbers
+  - Write output to file
   
 What it doesn't do:
-  - Write output to file
+  - Teleport to Andromeda
 
 # License
 This module is a part of FreeType Google Summer of Code 2018. All files and code are licensed under the FreeType License.
