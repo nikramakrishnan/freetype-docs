@@ -49,9 +49,15 @@ This module is currently under development, and output is only shown on Terminal
 python docconverter.py file1 [file2 ...]
 ```
 
-For example, if you want to convert include/freetype/freetype.h:
+Using the following options:
+- -h : print usage information
+- -o : set output directory, as in '-o mydir'
+
+**Note**: If `-o` parameter is not specified, output will flush to terminal.
+
+For example, if you want to convert all header files and flush to ./include_mod:
 ```bash
-python docconverter.py include/freetype/freetype.h
+python docconverter.py -o ./include_mod ./include/*.h ./include/freetype/*.h ./include/freetype/internal/*.h ./include/freetype/internal/services/*.h ./include/freetype/config/*.h
 ```
 
 # Development
