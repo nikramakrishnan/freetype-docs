@@ -44,7 +44,7 @@ The purpose of this module is to convert the 'heavy' comment documentation forma
 ```
 
 # Usage
-This module is currently under development, and output is only shown on Terminal. To convert files:
+This module is currently under development. To convert files:
 ```bash
 python docconverter.py file1 [file2 ...]
 ```
@@ -59,6 +59,8 @@ For example, if you want to convert all header files and flush to ./include_mod:
 ```bash
 python docconverter.py -o ./include_mod ./include/*.h ./include/freetype/*.h ./include/freetype/internal/*.h ./include/freetype/internal/services/*.h ./include/freetype/config/*.h
 ```
+
+**Note**: Output directory `./include_mod` should exist. Any directories inside will be created automatically.
 
 # Development
 This is in initial stages, and there may be many changes left.
