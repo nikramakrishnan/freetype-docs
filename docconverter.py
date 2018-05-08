@@ -24,7 +24,11 @@ import sys, glob, getopt
 def  usage():
     print( "\nDocConverter Usage information\n" )
     print( "  docconverter file1 [file2 ...]\n" )
-
+    print( "using the following options:\n" )
+    print( "  -h : print this page" )
+    print( "  -o : set output directory, as in '-o mydir'" )
+    print( "" )
+    print( "  --output : same as -o, as in '--output=mydir'" )
 
 def  main( argv ):
     """Main program loop."""
@@ -33,8 +37,8 @@ def  main( argv ):
 
     try:
         opts, args = getopt.getopt( sys.argv[1:],
-                                    "ht:o:p:",
-                                    ["help", "title=", "output=", "prefix="] )
+                                    "ho:",
+                                    ["help", "output="] )
     except getopt.GetoptError:
         usage()
         sys.exit( 2 )
@@ -44,7 +48,7 @@ def  main( argv ):
         sys.exit( 1 )
 
     # process options
-    output_dir     = "include_mod"
+    output_dir     = None
 
     for opt in opts:
         if opt[0] in ( "-h", "--help" ):
@@ -53,6 +57,7 @@ def  main( argv ):
 
         if opt[0] in ( "-o", "--output" ):
             utils.output_dir = opt[1]
+            utils.flush_to_file = True
 
     check_output()
 
@@ -63,7 +68,7 @@ def  main( argv ):
     file_list = make_file_list( args )
     for filename in file_list:
         blocks = source_processor.parse_file( filename )
-        write_to_file(blocks, filename)
+        write_to_file( blocks, filename )
 # if called from the command line
 if __name__ == '__main__':
     main( sys.argv )

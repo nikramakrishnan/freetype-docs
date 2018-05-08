@@ -6,6 +6,7 @@
 #  Copyright 2002-2018 by
 #  David Turner.
 #
+#  Modified for use of docconverter
 #  This file is part of the FreeType project, and may only be used,
 #  modified, and distributed under the terms of the FreeType project
 #  license, LICENSE.TXT.  By continuing to use, modify, or distribute
@@ -13,37 +14,16 @@
 #  understand and accept it fully.
 
 from __future__ import print_function
-import string, sys, os, glob, itertools
+import string, sys, os, glob, itertools, ntpath
 
 
 # current output directory
 #
 output_dir = None
 
-
-# A function that generates a sorting key.  We want lexicographical order
-# (primary key) except that capital letters are sorted before lowercase
-# ones (secondary key).
+# Decides whether to flush to file or terminal
 #
-# The primary key is implemented by lowercasing the input.  The secondary
-# key is simply the original data appended, character by character.  For
-# example, the sort key for `FT_x' is `fFtT__xx', while the sort key for
-# `ft_X' is `fftt__xX'.  Since ASCII codes of uppercase letters are
-# numerically smaller than the codes of lowercase letters, `fFtT__xx' gets
-# sorted before `fftt__xX'.
-#
-def  index_key( s ):
-    return " ".join( itertools.chain( *zip( s.lower(), s ) ) )
-
-
-# Sort `input_list', placing the elements of `order_list' in front.
-#
-def  sort_order_list( input_list, order_list ):
-    new_list = order_list[:]
-    for id in input_list:
-        if not id in order_list:
-            new_list.append( id )
-    return new_list
+flush_to_file = False
 
 
 # Divert standard output to a given project documentation file.  Use
@@ -124,12 +104,46 @@ def  make_file_list( args = None ):
 
     return file_list
 
+def create_dirs( filename ):
+    """Create directory for a file name if does not exist"""
+    global output_dir
+    dirname = output_dir + os.sep + os.path.dirname( filename )
+    if dirname and not os.path.isdir( dirname ):
+        os.makedirs( dirname )
+        print("created directory",dirname)
+
+def get_filename( filename ):
+    """
+    Get the new relative path for a file.
+    For example, if the current file is 
+    `./include/freetype/freetype.h`,
+    this function will return `freetype/freetype.h`
+    """
+    global output_dir
+    filename_norm = os.path.normpath(filename)
+    filename_split = filename_norm.split( os.sep )
+    new_path_split = filename_split[1:]
+    return (os.path.sep).join(new_path_split)
+
+
 def write_to_file( blocks, filename ):
     """Write list of blocks to file `filename`"""
     line_num = 1
+    output = None
+
+    if flush_to_file:
+        filename = get_filename( filename )
+        create_dirs( filename )
+        output = open_output( filename )
+
     for block in blocks:
         lines = block.lines
+
         for i in lines:
-            print(line_num, '\t', i, end='', sep='')
+            # print(line_num, '\t', i, end='', sep='')
+            print(i, end='', sep='')
             line_num += 1
+    
+    if output:
+        close_output( output )
 # eof
