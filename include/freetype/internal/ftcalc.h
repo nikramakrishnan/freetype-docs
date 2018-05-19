@@ -341,6 +341,7 @@ FT_BEGIN_HEADER
    */
 
 #ifndef  FT_CONFIG_OPTION_NO_ASSEMBLER
+
 #if defined( __GNUC__ )                                          && \
     ( __GNUC__ > 3 || ( __GNUC__ == 3 && __GNUC_MINOR__ >= 4 ) )
 
@@ -352,9 +353,34 @@ FT_BEGIN_HEADER
 
 #define FT_MSB( x )  ( 31 - __builtin_clzl( x ) )
 
+#endif /* __GNUC__ */
+
+
+#elif defined( _MSC_VER ) && ( _MSC_VER >= 1400 )
+
+#if FT_SIZEOF_INT == 4
+
+#include <intrin.h>
+
+  static __inline FT_Int32
+  FT_MSB_i386( FT_UInt32  x )
+  {
+    unsigned long  where;
+
+
+    /* not available in older VC versions */
+    _BitScanReverse( &where, x );
+
+    return (FT_Int32)where;
+  }
+
+#define FT_MSB( x )  ( FT_MSB_i386( x ) )
+
 #endif
 
-#endif /* __GNUC__ */
+#endif /* _MSC_VER */
+
+
 #endif /* !FT_CONFIG_OPTION_NO_ASSEMBLER */
 
 #ifndef FT_MSB
