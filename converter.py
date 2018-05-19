@@ -88,7 +88,8 @@ re_source_new_format = DocBlockFormat( 2, start, column, end )
 
 
 
-old_markup_tag = re.compile( r'''<((?:\w|-)*)>''' )
+old_markup_tag = re.compile( r'''<((?:\w|-)*)>''' )  # <xxxx> format
+new_markup_tag = re.compile( r'''\s*@((?:\w|-)*):''' )  # @xxxx: format
 
 #
 # A regular expression that stops collection of comments for the current
@@ -110,6 +111,7 @@ class Converter:
         self.format = None
         self.return_new = True
         self.column_started = False
+        self.inside_markup = False
 
     def convert(self, lines):
         """Perform conversion of old comment format to new commnet format
@@ -133,10 +135,10 @@ class Converter:
                         # If we're not already in a block
                         # This is to differentiate between the first
                         # and last line of the block
-                        self.line = re.sub(re_source_endline, '', self.line)
+                        self.line = re.sub(re_source_endline, '**', self.line)
                         self.started = True
 
-                        #Get indent value
+                        # Get indent value
                         self.indent = len(re.match(r'(\s*)', self.line).group(1))
 
                 elif self.format == None and re_source_new_format.start.match(self.line):
@@ -196,6 +198,22 @@ class Converter:
                     self.line = self.line[:last_position] + self.line[last_position+2:]
                 # Strip spaces from last line and add the newline character
                 self.line = self.line.rstrip() + self.newlinechar
+                
+                if self.inside_markup:
+                    # Start fixing indents if we are inside a markup tag
+                    if not re.search(old_markup_tag, self.line) and not re.search(new_markup_tag, self.line):
+                        # Check indentation of lines other than ones with markup tags
+                        line_groups = re.search(re_source_new_format.column, self.line)
+                        line_content = line_groups.group(1)
+                        if line_content:
+                            # If there is stuff in the line
+                            content_indent = len(re.match(r'(\s*)', self.line).group(1))
+                            if content_indent > 2:
+                                # If the indentation is more than 2, we reduce it by 1
+                                space_index = self.line.find(' ', self.indent+2)  # search only after initial indent
+                                self.line = self.line[:space_index] + self.line[space_index+1:]
+
+                            
             
             if re_source_old_format.start.match(self.line):
                 # If line matches end of old comment block
@@ -204,13 +222,17 @@ class Converter:
                 # to replace it with the new format
                 self.line = re.sub(re_source_old_format.end, ' */\n', self.line)
                 self.ended = True
+                self.inside_markup = False
 
         if self.format == 2 and re_source_new_format.end.match(self.line):
             self.ended = True
+            self.inside_markup = False
 
         if re.search(old_markup_tag, self.line):
             # If markup tag exists, change it to new format 
+            self.inside_markup = True
             self.replaceTag()
+             
 
 
     def refresh(self):
@@ -222,6 +244,7 @@ class Converter:
         self.format = None
         self.return_new = True
         self.column_started = False
+        self.inside_markup = False
 
     def replaceTag(self):
         #print("Old line len = ",len(self.line))
