@@ -141,6 +141,12 @@ class Converter:
                         # Get indent value
                         self.indent = len(re.match(r'(\s*)', self.line).group(1))
 
+                        # Check if line ends at column 77 (78 accounts for newline)
+                        if len(self.line) != 78:
+                            # if not left justify with * and add endline char
+                            self.line[:-1].ljust(77,'*') + self.newlinechar
+                            
+
                 elif self.format == None and re_source_new_format.start.match(self.line):
                     # If line matches start of new comment block
                     self.format = 2
