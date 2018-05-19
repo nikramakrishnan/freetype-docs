@@ -117,6 +117,8 @@ class Converter:
             lines - List containing lines of a comment block
         """
         newlines = []
+        # grab the newline character
+        self.newlinechar = lines[0][-1]
 
         for line in lines:
             self.line = line
@@ -192,6 +194,8 @@ class Converter:
                 last_position = self.line.rfind("*/")
                 if last_position != -1:
                     self.line = self.line[:last_position] + self.line[last_position+2:]
+                # Strip spaces from last line and add the newline character
+                self.line = self.line.rstrip() + self.newlinechar
             
             if re_source_old_format.start.match(self.line):
                 # If line matches end of old comment block
