@@ -1,3 +1,16 @@
+#
+#  docmaker.py
+#
+#    Convert source code markup to HTML documentation.
+#
+#  Copyright 2018 by
+#  Nikhil Ramakrishnan.
+#
+#  This file is part of the FreeType project, and may only be used,
+#  modified, and distributed under the terms of the FreeType project
+#  license, LICENSE.TXT.  By continuing to use, modify, or distribute
+#  this file you indicate that you have read the license and
+#  understand and accept it fully.
 """
 Collection of methods to convert heavy comment blocks 
 in the FreeType library to light comment blocks.
@@ -176,11 +189,11 @@ class Converter:
         #print(''.join(newlines))
 
         if not self.return_new:
-            # if there were no tags, return original list
+            # if it is a special block, return original list
             self.refresh()
             return lines
-        self.refresh()
         # return the changed list
+        self.refresh()
         return newlines
 
     def processLine(self):
@@ -202,7 +215,7 @@ class Converter:
                 last_position = self.line.rfind("*/")
                 if last_position != -1:
                     self.line = self.line[:last_position] + self.line[last_position+2:]
-                # Strip spaces from last line and add the newline character
+                # Strip spaces from end of line and add the newline character
                 self.line = self.line.rstrip() + self.newlinechar
                 
                 if self.inside_markup:
