@@ -1,7 +1,7 @@
 #
-#  docmaker.py
+#  converter.py
 #
-#    Convert source code markup to HTML documentation.
+#    Functions to convert source code comments to light format
 #
 #  Copyright 2018 by
 #  Nikhil Ramakrishnan.

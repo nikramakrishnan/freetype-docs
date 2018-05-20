@@ -2,7 +2,7 @@
 #
 #  docmaker.py
 #
-#    Convert source code markup to HTML documentation.
+#    Entry point to convert source code to lighter format.
 #
 #  Copyright 2018 by
 #  Nikhil Ramakrishnan.
