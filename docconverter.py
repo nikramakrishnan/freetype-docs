@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-#  docmaker.py
+#  docconverter.py
 #
 #    Entry point to convert source code to lighter format.
 #
