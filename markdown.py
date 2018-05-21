@@ -29,6 +29,9 @@ try:
 except ImportError:
     from io import StringIO
 
+import markdown_utils as mdutils
+
+
 ################################################################
 ##
 ##  SOURCE BLOCK FORMAT CLASS
@@ -90,9 +93,9 @@ start = r'''
 '''
 
 column = r'''
-  \s*           # any number of whitespace
-  \*{1}(?![*/]) # followed by precisely one asterisk not followed by `/'
-  (.*)          # then anything (group1)
+  (\s*           # any number of whitespace
+  \*{1})(?![*/]) # followed by precisely one asterisk (group1) not followed by `/'
+  (.*)          # then anything (group2)
 '''
 
 end = r'''
@@ -116,17 +119,6 @@ re_source_sep = re.compile( r'\s*\*\s*' )   #  /* */
 re_source_strline = re.compile(r'\/\*')    # /*
 re_source_endline = re.compile(r'\*\/')    # */
 
-#
-# Two regular expressions to detect italic and bold markup, respectively.
-# Group 1 is the markup, group 2 the rest of the line.
-#
-# Note that the markup is limited to words consisting of letters, digits,
-# the characters `_' and `-', or an apostrophe (but not as the first
-# character).
-#
-re_italic = re.compile( r"_((?:\w|-)(?:\w|'|-)*)_(.*)" )     #  _italic_
-re_bold   = re.compile( r"\*((?:\w|-)(?:\w|'|-)*)\*(.*)" )   #  *bold*
-
 class Markify:
 
     def __init__(self):
@@ -139,6 +131,8 @@ class Markify:
         self.return_new = True
         self.column_started = False
         self.inside_markup = False
+        self.precontent = None
+        self.content = None
 
     def convert(self, lines):
         """Perform conversion of comment blocks to markdown
@@ -156,7 +150,7 @@ class Markify:
                 # If no format or old comment block format
                 if re_source_old_format.start.match(self.line):
                     # If line matches start or end of old comment block
-                    self.format = 1
+                    self.return_new = False
 
                     if not self.started:
                         self.indent = len(re.match(r'(\s*)', self.line).group(1))
@@ -188,24 +182,22 @@ class Markify:
         return newlines
 
     def processLine(self):
-        if self.format == 2:
-            if re_source_old_format.start.match(self.line) and not self.column_started:
-                # if the start line occurrs again this is a special
-                # comment block and should be retained
-                self.return_new = False
-
+        '''Process line and convert to markdown'''
+        if self.format == 2 and self.inside_markup:
             m = re.search(re_source_new_format.column, self.line)
             if m:
-                self.content = m.group(1)
+                # Get the beginning and push rest through markdown checks
+                self.precontent = m.group(1)
+                self.content = m.group(2)
                 #Set the column_started flag
                 self.column_started = True
+
                 # handle markup for italic and bold
-                n = re_italic.search( self.content )
-                print(n)
-                if n:
-                    name = n.group( 1 )
-                    rest = n.group( 2 )
-                    print("name = ", name, "rest = ", rest)
+                self.content = mdutils.emphasis( self.content )
+
+                # more functions bla bla bla
+
+
 
 
                             
@@ -218,11 +210,12 @@ class Markify:
             self.ended = True
             self.inside_markup = False
 
-        if re.search(old_markup_tag, self.line):
-            # If markup tag exists, change it to new format 
+        tag_search = re.search(new_markup_tag, self.line)
+        if tag_search:
+            # If markup tag exists, start a content block 
             self.inside_markup = True
-             
-
+            # content = TagContent()
+            # content.tag = tag_search.group(1)
 
     def refresh(self):
         self.started = False
@@ -234,6 +227,8 @@ class Markify:
         self.return_new = True
         self.column_started = False
         self.inside_markup = False
+        self.precontent = None
+        self.content = None
 
 if __name__ == "__main__":
     s = r'''
@@ -248,6 +243,8 @@ if __name__ == "__main__":
    *   algorithm that returns _very_ quickly when the two boxes
    *   coincide.  Otherwise, the outline Bezier arcs are traversed to
    *   extract their extrema.
+   *   Also *here* *is* *a* test *line* *with* weird _stuff_
+   *   *More* tricky  stuff    *is*      *coming* *your* *way* byatch
    *
    * @Input:
    *   outline :: A pointer to the source outline.
@@ -257,6 +254,7 @@ if __name__ == "__main__":
    *
    * @Return:
    *   FreeType error code.  0~means success.
+   *   _Native_ _ClearType_ _Mode_ hello _lol_ ok
    *
    * @Note:
    *   If the font is tricky and the glyph has been loaded with
@@ -275,5 +273,5 @@ if __name__ == "__main__":
 
     newlines = c.convert(lines)
 
-    print(''.join(newlines))
+    #print(''.join(newlines))
     
