@@ -29,7 +29,7 @@
 #
 
 
-import fileinput, re, string, converter
+import fileinput, re, string, converter, markdown
 
 
 ################################################################
@@ -163,13 +163,16 @@ class SourceBlock:
 ##
 class  SourceProcessor:
 
-    def  __init__( self ):
+    def  __init__( self, type = 1 ):
         """Initialize a source processor."""
         self.blocks   = []
         self.filename = None
         self.format   = None
         self.lines    = []
-        self.converter = converter.Converter()
+        if type == 1:
+            self.converter = converter.Converter()
+        elif type == 2:
+            self.converter = markdown.Markify()
         self.modline = None
     def  reset( self ):
         """Reset a block processor and clean up all its blocks."""
