@@ -37,7 +37,7 @@ def check_emp( content, type = 1 ):
     elif type == 2:
         re_emp = re_italic
         pp_chr = '_'
-
+    changed = False
     n = re_emp.search( content )
     if n:
         # if we find a emphasis
@@ -47,23 +47,25 @@ def check_emp( content, type = 1 ):
         words = content.split(' ')
 
         for word in words:
-            bold_match = re_emp.match( word )
+            emp_match = re_emp.match( word )
 
-            if bold_match:
+            if emp_match:
                 # if the word is emphasis
                 if not emp_started:
                     # if emphasis block is not started yet
                     emp_started = True
 
-                text = bold_match.group(1)
+                text = emp_match.group(1)
                 emphasis.append( text )
 
-            elif not bold_match and emp_started:
+            elif not emp_match and emp_started:
                 # if the emphasis block ends
                 if word == '':
                     # if we have multiple spaces continue the block
                     emphasis.append( word )
                     continue
+                if len( emphasis ) >= 1:
+                    changed = True
                 boldtext = pp_chr + ' '.join( emphasis ) + pp_chr
                 rest.append( boldtext )  # append the emphasis block to rest
                 rest.append( word )  # append the current word to rest
@@ -71,7 +73,7 @@ def check_emp( content, type = 1 ):
                 emphasis = []
 
             else:
-                # elif not bold_match and not emp_started
+                # elif not emp_match and not emp_started
                 rest.append( word )
         # Flush emphasis into rest
         if emphasis != []:
@@ -80,5 +82,6 @@ def check_emp( content, type = 1 ):
 
         content = ' '.join( rest )
         #content = re.sub(re_bold, r'**\g<1>**',content)
-        print(content)
+        if changed:
+            print(content)
     return content
