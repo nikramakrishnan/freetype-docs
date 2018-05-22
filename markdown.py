@@ -119,6 +119,46 @@ re_source_sep = re.compile( r'\s*\*\s*' )   #  /* */
 re_source_strline = re.compile(r'\/\*')    # /*
 re_source_endline = re.compile(r'\*\/')    # */
 
+#
+# A regular expression to detect field definitions.
+#
+# Examples:
+#
+#   foo     ::
+#   foo.bar ::
+#
+re_field = re.compile( r"""
+                         \s*
+                           (
+                             \w*
+                           |
+                             \w (\w | \.)* \w
+                           )
+                         \s* ::
+                       """, re.VERBOSE )
+
+
+
+class Markup:
+    
+    def __init__( self, tag ):
+        self.tag = tag
+        self.lines = []
+        self.prelines = []
+        self.has_field = False
+
+    def add_line( self, preline, line ):
+        self.prelines.append( preline )
+        self.lines.append( line )
+
+    def set_field( self ):
+        self.has_field = True
+
+    def close( self ):
+        if self.has_field:
+            mdutils.table( self )
+        
+
 class Markify:
 
     def __init__(self):
@@ -133,6 +173,10 @@ class Markify:
         self.inside_markup = False
         self.precontent = None
         self.content = None
+        self.cur_markup = None
+        mdutils.end_table()
+
+
 
     def convert(self, lines):
         """Perform conversion of comment blocks to markdown
@@ -183,22 +227,31 @@ class Markify:
 
     def processLine(self):
         '''Process line and convert to markdown'''
+
+        tag_search = re.search(new_markup_tag, self.line)
+        if tag_search:
+            # If markup tag exists, start a content block 
+            self.inside_markup = True
+            mdutils.end_table()
+
         if self.format == 2 and self.inside_markup:
             m = re.search(re_source_new_format.column, self.line)
             if m:
                 # Get the beginning and push rest through markdown checks
                 self.precontent = m.group(1)
                 self.content = m.group(2)
+                self.content = self.content.rstrip()
                 #Set the column_started flag
                 self.column_started = True
+                # Add line to markup
+                #self.cur_markup.add_line( self.precontent, self.line )
 
                 # handle markup for italic and bold
                 self.content = mdutils.emphasis( self.content )
+                self.line = self.precontent + self.content + self.newlinechar
 
-                # more functions bla bla bla
-
-
-
+                self.content = mdutils.table( self.precontent, self.content )
+                self.line = self.precontent + self.content + self.newlinechar
 
                             
             
@@ -209,13 +262,6 @@ class Markify:
         if self.format == 2 and re_source_new_format.end.match(self.line):
             self.ended = True
             self.inside_markup = False
-
-        tag_search = re.search(new_markup_tag, self.line)
-        if tag_search:
-            # If markup tag exists, start a content block 
-            self.inside_markup = True
-            # content = TagContent()
-            # content.tag = tag_search.group(1)
 
     def refresh(self):
         self.started = False
@@ -229,40 +275,205 @@ class Markify:
         self.inside_markup = False
         self.precontent = None
         self.content = None
+        self.cur_markup = None
+        self.markup_status = 0
+        mdutils.end_table()
 
 if __name__ == "__main__":
     s = r'''
   /**************************************************************************
    *
-   * @Function:
-   *   FT_Outline_Get_BBox
+   * @Struct:
+   *   FT_FaceRec
    *
    * @Description:
-   *   Compute the exact bounding box of an outline.  This is slower
-   *   than computing the control box.  However, it uses an *advanced*
-   *   algorithm that returns _very_ quickly when the two boxes
-   *   coincide.  Otherwise, the outline Bezier arcs are traversed to
-   *   extract their extrema.
-   *   Also *here* *is* *a* test *line* *with* weird _stuff_
-   *   *More* tricky  stuff    *is*      *coming* *your* *way* byatch
+   *   FreeType root face class structure.  A face object models a
+   *   typeface in a font file.
    *
-   * @Input:
-   *   outline :: A pointer to the source outline.
+   * @Fields:
+   *   num_faces           :: The number of faces in the font file.  Some
+   *                          font formats can have multiple faces in
+   *                          a single font file.
    *
-   * @Output:
-   *   abbox   :: The outline's exact bounding box.
+   *   face_index          :: This field holds two different values.
+   *                          Bits 0-15 are the index of the face in the
+   *                          font file (starting with value~0).  They
+   *                          are set to~0 if there is only one face in
+   *                          the font file.
    *
-   * @Return:
-   *   FreeType error code.  0~means success.
-   *   _Native_ _ClearType_ _Mode_ hello _lol_ ok
+   *                          [Since 2.6.1] Bits 16-30 are relevant to GX
+   *                          and OpenType variation fonts only, holding
+   *                          the named instance index for the current
+   *                          face index (starting with value~1; value~0
+   *                          indicates font access without a named
+   *                          instance).  For non-variation fonts, bits
+   *                          16-30 are ignored.  If we have the third
+   *                          named instance of face~4, say, `face_index'
+   *                          is set to 0x00030004.
+   *
+   *                          Bit 31 is always zero (this is,
+   *                          `face_index' is always a positive value).
+   *
+   *                          [Since 2.9] Changing the design coordinates
+   *                          with @FT_Set_Var_Design_Coordinates or
+   *                          @FT_Set_Var_Blend_Coordinates does not
+   *                          influence the named instance index value
+   *                          (only @FT_Set_Named_Instance does that).
+   *
+   *   face_flags          :: A set of bit flags that give important
+   *                          information about the face; see
+   *                          @FT_FACE_FLAG_XXX for the details.
+   *
+   *   style_flags         :: The lower 16~bits contain a set of bit
+   *                          flags indicating the style of the face; see
+   *                          @FT_STYLE_FLAG_XXX for the details.
+   *
+   *                          [Since 2.6.1] Bits 16-30 hold the number
+   *                          of named instances available for the
+   *                          current face if we have a GX or OpenType
+   *                          variation (sub)font.  Bit 31 is always zero
+   *                          (this is, `style_flags' is always a
+   *                          positive value).  Note that a variation
+   *                          font has always at least one named
+   *                          instance, namely the default instance.
+   *
+   *   num_glyphs          :: The number of glyphs in the face.  If the
+   *                          face is scalable and has sbits (see
+   *                          `num_fixed_sizes'), it is set to the number
+   *                          of outline glyphs.
+   *
+   *                          For CID-keyed fonts (not in an SFNT
+   *                          wrapper) this value gives the highest CID
+   *                          used in the font.
+   *
+   *   family_name         :: The face's family name.  This is an ASCII
+   *                          string, usually in English, that describes
+   *                          the typeface's family (like `Times New
+   *                          Roman', `Bodoni', `Garamond', etc).  This
+   *                          is a least common denominator used to list
+   *                          fonts.  Some formats (TrueType & OpenType)
+   *                          provide localized and Unicode versions of
+   *                          this string.  Applications should use the
+   *                          format specific interface to access them.
+   *                          Can be NULL (e.g., in fonts embedded in a
+   *                          PDF file).
+   *
+   *                          In case the font doesn't provide a specific
+   *                          family name entry, FreeType tries to
+   *                          synthesize one, deriving it from other name
+   *                          entries.
+   *
+   *   style_name          :: The face's style name.  This is an ASCII
+   *                          string, usually in English, that describes
+   *                          the typeface's style (like `Italic',
+   *                          `Bold', `Condensed', etc).  Not all font
+   *                          formats provide a style name, so this field
+   *                          is optional, and can be set to NULL.  As
+   *                          for `family_name', some formats provide
+   *                          localized and Unicode versions of this
+   *                          string.  Applications should use the format
+   *                          specific interface to access them.
+   *
+   *   num_fixed_sizes     :: The number of bitmap strikes in the face.
+   *                          Even if the face is scalable, there might
+   *                          still be bitmap strikes, which are called
+   *                          `sbits' in that case.
+   *
+   *   available_sizes     :: An array of @FT_Bitmap_Size for all bitmap
+   *                          strikes in the face.  It is set to NULL if
+   *                          there is no bitmap strike.
+   *
+   *                          Note that FreeType tries to sanitize the
+   *                          strike data since they are sometimes sloppy
+   *                          or incorrect, but this can easily fail.
+   *
+   *   num_charmaps        :: The number of charmaps in the face.
+   *
+   *   charmaps            :: An array of the charmaps of the face.
+   *
+   *   generic             :: A field reserved for client uses.  See the
+   *                          @FT_Generic type description.
+   *
+   *   bbox                :: The font bounding box.  Coordinates are
+   *                          expressed in font units (see
+   *                          `units_per_EM').  The box is large enough
+   *                          to contain any glyph from the font.  Thus,
+   *                          `bbox.yMax' can be seen as the `maximum
+   *                          ascender', and `bbox.yMin' as the `minimum
+   *                          descender'.  Only relevant for scalable
+   *                          formats.
+   *
+   *                          Note that the bounding box might be off by
+   *                          (at least) one pixel for hinted fonts.  See
+   *                          @FT_Size_Metrics for further discussion.
+   *
+   *   units_per_EM        :: The number of font units per EM square for
+   *                          this face.  This is typically 2048 for
+   *                          TrueType fonts, and 1000 for Type~1 fonts.
+   *                          Only relevant for scalable formats.
+   *
+   *   ascender            :: The typographic ascender of the face,
+   *                          expressed in font units.  For font formats
+   *                          not having this information, it is set to
+   *                          `bbox.yMax'.  Only relevant for scalable
+   *                          formats.
+   *
+   *   descender           :: The typographic descender of the face,
+   *                          expressed in font units.  For font formats
+   *                          not having this information, it is set to
+   *                          `bbox.yMin'.  Note that this field is
+   *                          negative for values below the baseline.
+   *                          Only relevant for scalable formats.
+   *
+   *   height              :: This value is the vertical distance
+   *                          between two consecutive baselines,
+   *                          expressed in font units.  It is always
+   *                          positive.  Only relevant for scalable
+   *                          formats.
+   *
+   *                          If you want the global glyph height, use
+   *                          `ascender - descender'.
+   *
+   *   max_advance_width   :: The maximum advance width, in font units,
+   *                          for all glyphs in this face.  This can be
+   *                          used to make word wrapping computations
+   *                          faster.  Only relevant for scalable
+   *                          formats.
+   *
+   *   max_advance_height  :: The maximum advance height, in font units,
+   *                          for all glyphs in this face.  This is only
+   *                          relevant for vertical layouts, and is set
+   *                          to `height' for fonts that do not provide
+   *                          vertical metrics.  Only relevant for
+   *                          scalable formats.
+   *
+   *   underline_position  :: The position, in font units, of the
+   *                          underline line for this face.  It is the
+   *                          center of the underlining stem.  Only
+   *                          relevant for scalable formats.
+   *
+   *   underline_thickness :: The thickness, in font units, of the
+   *                          underline for this face.  Only relevant for
+   *                          scalable formats.
+   *
+   *   glyph               :: The face's associated glyph slot(s).
+   *
+   *   size                :: The current active size for this face.
+   *
+   *   charmap             :: The current active charmap for this face.
    *
    * @Note:
-   *   If the font is tricky and the glyph has been loaded with
-   *   @FT_LOAD_NO_SCALE, the resulting BBox is meaningless.  To get
-   *   reasonable values for the BBox it is necessary to load the glyph
-   *   at a large ppem value (so that the hinting instructions can
-   *   properly shift and scale the subglyphs), then extracting the BBox,
-   *   which can be eventually converted back to font units.
+   *   Fields may be changed after a call to @FT_Attach_File or
+   *   @FT_Attach_Stream.
+   *
+   *   For an OpenType variation font, the values of the following fields
+   *   can change after a call to @FT_Set_Var_Design_Coordinates (and
+   *   friends) if the font contains an `MVAR' table: `ascender',
+   *   `descender', `height', `underline_position', and
+   *   `underline_thickness'.
+   *
+   *   Especially for TrueType fonts see also the documentation for
+   *   @FT_Size_Metrics.
    */
     '''
     lines = []
@@ -273,5 +484,5 @@ if __name__ == "__main__":
 
     newlines = c.convert(lines)
 
-    #print(''.join(newlines))
+    print(''.join(newlines))
     

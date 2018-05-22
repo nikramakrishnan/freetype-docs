@@ -14,6 +14,10 @@
 #  understand and accept it fully.
 
 import re
+
+# Variables to check if inside fields
+inside_field = False
+field_indent = 0
 #
 # Two regular expressions to detect italic and emphasis markup, respectively.
 #
@@ -23,11 +27,71 @@ import re
 #
 re_italic = re.compile( r"_((?:\w|-)(?:\w|'|-)*)_" )     #  _italic_
 re_bold   = re.compile( r"\*((?:\w|-)(?:\w|'|-)*)\*" )   #  *emphasis*
+#
+# A regular expression to detect field definitions.
+#
+# Examples:
+#
+#   foo     ::
+#   foo.bar ::
+#
+re_field = re.compile( r"""
+                         \s*
+                           (
+                             \w*
+                           |
+                             \w (\w | \.)* \w
+                           )
+                         (\s*) ::
+                       """, re.VERBOSE )
 
 def emphasis( content ):
     content = check_emp( content, 1 )
     content = check_emp( content, 2 )
     return content
+
+def table( precontent, content ):
+    # Get indent value
+    indent = len(re.match(r'(\s*)', content).group(1))
+    content = convert_table( precontent, content, indent )
+    return content
+
+
+def convert_table( precontent, content, indent ):
+    global inside_field
+    global field_indent
+    new_content = content
+    m = re_field.match( content )
+
+    if m:
+        # if we find a field definition
+        inside_field = True
+        # check space between field name and ::
+        field_len = len( m.group( 0 ) )
+        field_pre = content[:field_len-2]   # The part bofore ::
+        field_pre = field_pre.rstrip() + " ::" # fix spaces and add ::
+
+        # Now put the description to the next line
+        field_desc = content[field_len:].strip()
+        if( len(field_desc.strip()) != 0 ):
+            field_desc = "\n" + precontent + " " * (indent + 2) + field_desc
+        
+        new_content = field_pre + field_desc
+        
+        # Set field indent
+        field_indent = indent
+    
+    elif inside_field:
+        if len( content.strip() ) > 0:
+            new_content = " " * (field_indent + 2) + content.strip()
+    
+    #print(new_content)
+    return new_content
+
+def end_table( ):
+    global inside_field
+    inside_field = False
+            
 
 
 def check_emp( content, type = 1 ):
@@ -82,6 +146,6 @@ def check_emp( content, type = 1 ):
 
         content = ' '.join( rest )
         #content = re.sub(re_bold, r'**\g<1>**',content)
-        if changed:
-            print(content)
+        #if changed:
+            #print(content)
     return content
