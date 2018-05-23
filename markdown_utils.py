@@ -12,12 +12,21 @@
 #  license, LICENSE.TXT.  By continuing to use, modify, or distribute
 #  this file you indicate that you have read the license and
 #  understand and accept it fully.
+'''
+Contains utility functions for conversion of comment lines/blocks
+to markdown.
 
+Typical usage:
+    import markdown_utils as mdutils
+    mdutils.do_stuff( content )
+
+'''
 import re
 
-# Variables to check if inside fields
+# Variables to store field data
 inside_field = False
 field_indent = 0
+
 #
 # Two regular expressions to detect italic and emphasis markup, respectively.
 #
@@ -25,8 +34,11 @@ field_indent = 0
 # the characters `_' and `-', or an apostrophe (but not as the first
 # character).
 #
-re_italic = re.compile( r"_((?:\w|-)(?:\w|'|-)*)_" )     #  _italic_
-re_bold   = re.compile( r"\*((?:\w|-)(?:\w|'|-)*)\*" )   #  *emphasis*
+# We capture anything after the italics to retain that
+# This is *not* dangerous becuase we split the line while fixing
+re_italic = re.compile( r"_((?:\w|-)(?:\w|'|-)*)_(.*)" )     #  _italic_
+re_bold   = re.compile( r"\*((?:\w|-)(?:\w|'|-)*)\*(.*)" )   #  *emphasis*
+
 #
 # A regular expression to detect field definitions.
 #
@@ -45,24 +57,28 @@ re_field = re.compile( r"""
                          (\s*) ::
                        """, re.VERBOSE )
 
-def emphasis( content ):
-    content = check_emp( content, 1 )
-    content = check_emp( content, 2 )
-    return content
-
 def table( precontent, content ):
+    '''Convert field entries to lighter syntax'''
     # Get indent value
     indent = len(re.match(r'(\s*)', content).group(1))
     content = convert_table( precontent, content, indent )
     return content
 
+def emphasis( content ):
+    '''Convert emphasis (bold and italics) to markdown syntax'''
+    content = check_emp( content, 1 )
+    content = check_emp( content, 2 )
+    return content
+
 
 def convert_table( precontent, content, indent ):
+    '''Table converter internal function'''
     global inside_field
     global field_indent
+    # if nothing changes, we return original string
     new_content = content
-    m = re_field.match( content )
 
+    m = re_field.match( content )
     if m:
         # if we find a field definition
         inside_field = True
@@ -73,7 +89,7 @@ def convert_table( precontent, content, indent ):
 
         # Now put the description to the next line
         field_desc = content[field_len:].strip()
-        if( len(field_desc.strip()) != 0 ):
+        if( len(field_desc) != 0 ):
             field_desc = "\n" + precontent + " " * (indent + 2) + field_desc
         
         new_content = field_pre + field_desc
@@ -82,19 +98,21 @@ def convert_table( precontent, content, indent ):
         field_indent = indent
     
     elif inside_field:
+        # if we are already inside a field
         if len( content.strip() ) > 0:
             new_content = " " * (field_indent + 2) + content.strip()
-    
-    #print(new_content)
+    # DEBUG
+    # print(new_content)
     return new_content
 
 def end_table( ):
+    '''Explicitly signal end of a table field markup'''
     global inside_field
     inside_field = False
-            
 
 
 def check_emp( content, type = 1 ):
+    '''Emphasis converter internal function'''
     if type == 1:
         re_emp = re_bold
         pp_chr = '**'
@@ -120,6 +138,10 @@ def check_emp( content, type = 1 ):
                     emp_started = True
 
                 text = emp_match.group(1)
+                # capture anything attached to match text
+                attach = emp_match.group(2).strip()
+
+                # add text to emphasis
                 emphasis.append( text )
 
             elif not emp_match and emp_started:
@@ -130,8 +152,15 @@ def check_emp( content, type = 1 ):
                     continue
                 if len( emphasis ) >= 1:
                     changed = True
-                boldtext = pp_chr + ' '.join( emphasis ) + pp_chr
-                rest.append( boldtext )  # append the emphasis block to rest
+                emptext = pp_chr + ' '.join( emphasis ) + pp_chr
+                # NOTE This is not good, and is not a permanent fix
+                # TODO fix this. It adds `attach' to end of block instead of
+                #      with the word it came from
+                if len(attach) > 0:
+                    # add to text if there is anything
+                    emptext += attach
+                    attach = ""
+                rest.append( emptext )  # append the emphasis block to rest
                 rest.append( word )  # append the current word to rest
                 emp_started = False # emphasis block is no longer active
                 emphasis = []
@@ -139,13 +168,14 @@ def check_emp( content, type = 1 ):
             else:
                 # elif not emp_match and not emp_started
                 rest.append( word )
-        # Flush emphasis into rest
+
+        # Flush last block of emphasis into rest
         if emphasis != []:
-            boldtext = pp_chr + ' '.join( emphasis ) + pp_chr
-            rest.append( boldtext )
+            emptext = pp_chr + ' '.join( emphasis ) + pp_chr
+            rest.append( emptext )
 
         content = ' '.join( rest )
-        #content = re.sub(re_bold, r'**\g<1>**',content)
-        #if changed:
-            #print(content)
+        # DEBUG
+        # if changed:
+        #     print(content)
     return content

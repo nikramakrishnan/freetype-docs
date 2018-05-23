@@ -20,7 +20,7 @@ https://github.com/nikramakrishnan/freetype-docs/wiki/Feature-Draft-of-the-FreeT
 Typical usage:
     import markdown
     converter = markdown.Markify()
-    converter.markify(lines)
+    converter.markify( lines )
 """
 from __future__ import print_function
 import re
@@ -48,7 +48,7 @@ import markdown_utils as mdutils
 class  DocBlockFormat:
 
     def  __init__( self, id, start, column, end ):
-        """Create a block pattern, used to recognize special documentation
+        """Create a block pattern, used to recognize documentation
            blocks."""
         self.id     = id
         self.start  = re.compile( start, re.VERBOSE )
@@ -136,34 +136,12 @@ re_field = re.compile( r"""
                            )
                          \s* ::
                        """, re.VERBOSE )
-
-
-
-class Markup:
-    
-    def __init__( self, tag ):
-        self.tag = tag
-        self.lines = []
-        self.prelines = []
-        self.has_field = False
-
-    def add_line( self, preline, line ):
-        self.prelines.append( preline )
-        self.lines.append( line )
-
-    def set_field( self ):
-        self.has_field = True
-
-    def close( self ):
-        if self.has_field:
-            mdutils.table( self )
         
 
 class Markify:
 
     def __init__(self):
         self.started = False
-        self.tag = None
         self.line = None
         self.ended = False
         self.indent = None
@@ -173,7 +151,6 @@ class Markify:
         self.inside_markup = False
         self.precontent = None
         self.content = None
-        self.cur_markup = None
         mdutils.end_table()
 
 
@@ -243,13 +220,13 @@ class Markify:
                 self.content = self.content.rstrip()
                 #Set the column_started flag
                 self.column_started = True
-                # Add line to markup
-                #self.cur_markup.add_line( self.precontent, self.line )
 
                 # handle markup for italic and bold
-                self.content = mdutils.emphasis( self.content )
-                self.line = self.precontent + self.content + self.newlinechar
+                # NOTE: This is disabled for now to support current docmaker
+                # self.content = mdutils.emphasis( self.content )
+                # self.line = self.precontent + self.content + self.newlinechar
 
+                # handle markup for field entries
                 self.content = mdutils.table( self.precontent, self.content )
                 self.line = self.precontent + self.content + self.newlinechar
 
@@ -265,7 +242,6 @@ class Markify:
 
     def refresh(self):
         self.started = False
-        self.tag = None
         self.line = None
         self.ended = False
         self.indent = None
@@ -275,7 +251,6 @@ class Markify:
         self.inside_markup = False
         self.precontent = None
         self.content = None
-        self.cur_markup = None
         self.markup_status = 0
         mdutils.end_table()
 
