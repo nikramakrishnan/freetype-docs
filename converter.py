@@ -136,12 +136,6 @@ class Converter:
         # grab the newline character
         self.newlinechar = lines[0][-1]
 
-        #DEBUG
-        # print("-----start block-----")
-        # for line in lines:
-        #     print(line, end = '')
-        # print("-----end block-----")
-
         for line in lines:
             self.line = line
 

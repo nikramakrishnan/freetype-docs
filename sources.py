@@ -194,10 +194,7 @@ class  SourceProcessor:
         self.lines  = []
         self.endlineno = 0
         for line in fileinput.input( filename ):
-            # strip trailing newlines, important on Windows machines!
-            # if line[-1] == '\012':
-            #     line = line[0:-1]
-            #     print(line)
+
             # DEBUG
             # print("self.format =", self.format ,line, end ='')
             if self.format == None:
