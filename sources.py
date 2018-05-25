@@ -174,6 +174,8 @@ class  SourceProcessor:
         elif type == 2:
             self.converter = markdown.Markify()
         self.modline = None
+        self.column_started = False
+
     def  reset( self ):
         """Reset a block processor and clean up all its blocks."""
         self.blocks = []
@@ -207,12 +209,17 @@ class  SourceProcessor:
                     self.lines.append( line )
                     # DEBUG
                     #print(self.lines)
+                    # If column not started this may be a special block
+                    if not self.column_started:
+                        continue
+
                     self.endlineno = fileinput.filelineno()
                     # CALL TO REPLACE COMMENT FORMAT
                     self.convert_comment()
                     self.add_block_lines()
                 elif self.format.column.match( line ):
                     # A normal column line.  Add it to `lines'.
+                    self.column_started = True
                     self.lines.append( line )
                 else:
                     # An unexpected block end.  Create a new block, but
@@ -241,6 +248,7 @@ class  SourceProcessor:
                 self.add_block_lines()
                 self.format = f
                 self.lineno = fileinput.filelineno()
+                self.column_started = False
 
         self.lines.append( line )
 

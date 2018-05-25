@@ -20,6 +20,7 @@ Typical usage:
     converter = Converter()
     converter.convert(lines)
 """
+from __future__ import print_function
 import re
 try:
     from StringIO import StringIO
@@ -135,6 +136,12 @@ class Converter:
         # grab the newline character
         self.newlinechar = lines[0][-1]
 
+        #DEBUG
+        # print("-----start block-----")
+        # for line in lines:
+        #     print(line, end = '')
+        # print("-----end block-----")
+
         for line in lines:
             self.line = line
 
@@ -188,7 +195,7 @@ class Converter:
         # DEBUG
         #print(''.join(newlines))
 
-        if not self.return_new:
+        if not self.return_new or not self.column_started:
             # if it is a special block, return original list
             self.refresh()
             return lines
@@ -197,14 +204,15 @@ class Converter:
         return newlines
 
     def processLine(self):
-        if self.format == 1:
+        if self.format == 1 or self.format == 2:
             if re_source_old_format.start.match(self.line) and not self.column_started:
                 # if the start line occurrs again this is a special
                 # comment block and should be retained
                 self.return_new = False
 
             m = re.search(re_source_old_format.column, self.line)
-            if m:
+            n = re.search(re_source_new_format.column, self.line)
+            if m or n:
                 #Set the column_started flag
                 self.column_started = True
                 # If the line is a documentation line
@@ -218,8 +226,9 @@ class Converter:
                 # Strip spaces from end of line and add the newline character
                 self.line = self.line.rstrip() + self.newlinechar
                 
-                if self.inside_markup:
+                if self.inside_markup and not self.format == 2:
                     # Start fixing indents if we are inside a markup tag
+                    # and if comment format is not new
                     if not re.search(old_markup_tag, self.line) and not re.search(new_markup_tag, self.line):
                         # Check indentation of lines other than ones with markup tags
                         line_groups = re.search(re_source_new_format.column, self.line)
@@ -300,3 +309,4 @@ if __name__ == "__main__":
 
     print(''.join(newlines))
     
+# eof
