@@ -6,7 +6,6 @@
 #  Copyright 2018 by
 #  Nikhil Ramakrishnan.
 #
-#  Modified for use of docconverter
 #  This file is part of the FreeType project, and may only be used,
 #  modified, and distributed under the terms of the FreeType project
 #  license, LICENSE.TXT.  By continuing to use, modify, or distribute
@@ -35,7 +34,7 @@ field_indent = 0
 # character).
 #
 # We capture anything after the italics to retain that
-# This is *not* dangerous becuase we split the line while fixing
+# This is *not* dangerous becuase we split the line while processing
 re_italic = re.compile( r"_((?:\w|-)(?:\w|'|-)*)_(.*)" )     #  _italic_
 re_bold   = re.compile( r"\*((?:\w|-)(?:\w|'|-)*)\*(.*)" )   #  *emphasis*
 
@@ -153,13 +152,18 @@ def check_emp( content, type = 1 ):
                 if len( emphasis ) >= 1:
                     changed = True
                 emptext = pp_chr + ' '.join( emphasis ) + pp_chr
+                
                 # NOTE This is not good, and is not a permanent fix
-                # TODO fix this. It adds `attach' to end of block instead of
-                #      with the word it came from
+                # It adds `attach' to end of block instead of
+                # with the word it came from
+                # NOTE In the specific case of the FreeType header files,
+                # fixing this is not required as there is no use case
+                # where `attach' is not at the end of block
                 if len(attach) > 0:
                     # add to text if there is anything
                     emptext += attach
                     attach = ""
+                
                 rest.append( emptext )  # append the emphasis block to rest
                 rest.append( word )  # append the current word to rest
                 emp_started = False # emphasis block is no longer active
@@ -172,6 +176,10 @@ def check_emp( content, type = 1 ):
         # Flush last block of emphasis into rest
         if emphasis != []:
             emptext = pp_chr + ' '.join( emphasis ) + pp_chr
+            if len(attach) > 0:
+                # add to text if there is anything
+                emptext += attach
+                attach = ""
             rest.append( emptext )
 
         content = ' '.join( rest )
@@ -179,3 +187,5 @@ def check_emp( content, type = 1 ):
         # if changed:
         #     print(content)
     return content
+
+# eof

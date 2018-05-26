@@ -109,33 +109,6 @@ re_source_new_format = DocBlockFormat( 2, start, column, end )
 
 old_markup_tag = re.compile( r'''<((?:\w|-)*)>''' )  # <xxxx> format
 new_markup_tag = re.compile( r'''\s*@((?:\w|-)*):''' )  # @xxxx: format
-
-#
-# A regular expression that stops collection of comments for the current
-# block.
-#
-re_source_sep = re.compile( r'\s*\*\s*' )   #  /* */
-
-re_source_strline = re.compile(r'\/\*')    # /*
-re_source_endline = re.compile(r'\*\/')    # */
-
-#
-# A regular expression to detect field definitions.
-#
-# Examples:
-#
-#   foo     ::
-#   foo.bar ::
-#
-re_field = re.compile( r"""
-                         \s*
-                           (
-                             \w*
-                           |
-                             \w (\w | \.)* \w
-                           )
-                         \s* ::
-                       """, re.VERBOSE )
         
 
 class Markify:
@@ -218,23 +191,16 @@ class Markify:
                 self.precontent = m.group(1)
                 self.content = m.group(2)
                 self.content = self.content.rstrip()
-                #Set the column_started flag
+                # Set the column_started flag
                 self.column_started = True
 
                 # handle markup for italic and bold
-                # NOTE: This is disabled for now to support current docmaker
-                # self.content = mdutils.emphasis( self.content )
-                # self.line = self.precontent + self.content + self.newlinechar
+                self.content = mdutils.emphasis( self.content )
+                self.line = self.precontent + self.content + self.newlinechar
 
                 # handle markup for field entries
                 self.content = mdutils.table( self.precontent, self.content )
                 self.line = self.precontent + self.content + self.newlinechar
-
-                            
-            
-            if re_source_old_format.start.match(self.line):
-                self.ended = True
-                self.inside_markup = False
 
         if self.format == 2 and re_source_new_format.end.match(self.line):
             self.ended = True
@@ -264,6 +230,7 @@ if __name__ == "__main__":
    * @Description:
    *   FreeType root face class structure.  A face object models a
    *   typeface in a font file.
+   *   Hello *this* *is*: _Something'_ _special_
    *
    * @Fields:
    *   num_faces           :: The number of faces in the font file.  Some
@@ -460,4 +427,5 @@ if __name__ == "__main__":
     newlines = c.convert(lines)
 
     print(''.join(newlines))
-    
+
+# eof
