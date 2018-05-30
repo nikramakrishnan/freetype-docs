@@ -25,6 +25,17 @@ import re
 # Variables to store field data
 inside_field = False
 field_indent = 0
+cur_lines = []
+
+newlinechar = "\n"
+
+# Variables for code conversion
+mode  = 0
+mode_none = 0
+mode_code = 1
+in_code_bock = False
+margin = -1
+new_delimiter = "```"
 
 #
 # Two regular expressions to detect italic and emphasis markup, respectively.
@@ -56,6 +67,27 @@ re_field = re.compile( r"""
                          (\s*) ::
                        """, re.VERBOSE )
 
+#
+# Regular expressions to detect code sequences.  `Code sequences' are simply
+# code fragments embedded in '{' and '}', as demonstrated in the following
+# example.
+#
+#   {
+#     x = y + z;
+#     if ( zookoo == 2 )
+#     {
+#       foobar();
+#     }
+#   }
+#
+# Note that the indentation of the first opening brace and the last closing
+# brace must be exactly the same.  The code sequence itself should have a
+# larger indentation than the surrounding braces.
+#
+re_code_start = re.compile( r"(\s*){\s*$" )
+re_code_end   = re.compile( r"(\s*)}\s*$" )
+
+
 def table( precontent, content ):
     '''Convert field entries to lighter syntax'''
     # Get indent value
@@ -69,11 +101,20 @@ def emphasis( content ):
     content = check_emp( content, 2 )
     return content
 
+def code_block( precontent, content ):
+    '''Change code block start and ends
+    
+    Note that content must be supplied with comment prefixes
+    '''
+    content, to_add = convert_code_block( precontent, content )
+    return content, to_add
+
 
 def convert_table( precontent, content, indent ):
     '''Table converter internal function'''
     global inside_field
     global field_indent
+    global newlinechar
     # if nothing changes, we return original string
     new_content = content
 
@@ -89,7 +130,7 @@ def convert_table( precontent, content, indent ):
         # Now put the description to the next line
         field_desc = content[field_len:].strip()
         if( len(field_desc) != 0 ):
-            field_desc = "\n" + precontent + " " * (indent + 2) + field_desc
+            field_desc = newlinechar + precontent + " " * (indent + 2) + field_desc
         
         new_content = field_pre + field_desc
         
@@ -187,5 +228,47 @@ def check_emp( content, type = 1 ):
         # if changed:
         #     print(content)
     return content
+
+def convert_code_block( precontent, line ):
+    '''Code block converter internal function'''
+    
+    global mode, mode_none, mode_code, in_code_bock, margin
+    global new_delimiter, cur_lines, newlinechar
+
+    # are we parsing a code sequence?
+    if mode == mode_code:
+        m = re_code_end.match( line )
+        if m and len( m.group( 1 ) ) <= margin:
+            # that's it, we finished the code sequence
+            #code = DocCode( 0, cur_lines )
+            #self.items.append( code )
+            new_end = precontent + " " * margin + new_delimiter # endline will be added later
+            cur_lines += new_end
+            ret_lines = cur_lines
+            margin    = -1
+            cur_lines = ""
+            mode      = mode_none
+            return ret_lines, 1
+        else:
+            # otherwise continue the code sequence
+            cur_lines += ( precontent + line + newlinechar)
+            return None, 2
+    else:
+        # start of code sequence?
+        m = re_code_start.match( line )
+        if m:
+            # clear current lines
+            cur_lines = ""
+
+            # switch to code extraction mode
+            margin = len( m.group( 1 ) )
+            mode   = mode_code
+
+            # replace current line and add to block
+            new_start = " " * margin + new_delimiter + newlinechar
+            cur_lines += (new_start)
+            return None, 2
+        else:
+            return None, 0
 
 # eof

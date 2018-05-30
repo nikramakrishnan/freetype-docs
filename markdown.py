@@ -32,6 +32,7 @@ except ImportError:
 import markdown_utils as mdutils
 
 
+
 ################################################################
 ##
 ##  SOURCE BLOCK FORMAT CLASS
@@ -136,6 +137,8 @@ class Markify:
         newlines = []
         # grab the newline character
         self.newlinechar = lines[0][-1]
+        # set newlinechar in mdutils
+        mdutils.newlinechar = self.newlinechar
 
         for line in lines:
             self.line = line
@@ -194,13 +197,33 @@ class Markify:
                 # Set the column_started flag
                 self.column_started = True
 
+                #########################################
+                # Italics and Bold
+                #########################################
                 # handle markup for italic and bold
                 self.content = mdutils.emphasis( self.content )
                 self.line = self.precontent + self.content + self.newlinechar
 
+                #########################################
+                # Field entries
+                #########################################
                 # handle markup for field entries
                 self.content = mdutils.table( self.precontent, self.content )
                 self.line = self.precontent + self.content + self.newlinechar
+
+                #########################################
+                # Code Blocks
+                #########################################
+                # handle markup for code blocks
+                #global counter
+                self.content, to_add = mdutils.code_block( self.precontent, self.content )
+                if to_add == 1:
+                    # If code block ended and we can add the line
+                    self.line = self.precontent + self.content + self.newlinechar
+                elif to_add == 2:
+                    # If we are in code block, so don't add anything
+                    self.line = ""
+                # Otherwise self.line remains untouched
 
         if self.format == 2 and re_source_new_format.end.match(self.line):
             self.ended = True
