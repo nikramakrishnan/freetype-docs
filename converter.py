@@ -112,10 +112,16 @@ old_markup_tag_replace = re.compile( r'''<((?:\w|-)*)>''' )  # <xxxx> format
 # A regular expression that stops collection of comments for the current
 # block.
 #
-re_source_sep = re.compile( r'\s*\*\s*' )   #  /* */
+re_source_sep = re.compile( r'\s*\/\*\s*\*\/' )   #  /* */
+
+# New block empty line
+# Any number of spaces, followed by a single asterisk, and EOL
+re_source_new_sep = re.compile( r'\s*\*$' )
 
 re_source_strline = re.compile(r'\/\*')    # /*
 re_source_endline = re.compile(r'\*\/')    # */
+
+re_source_define_line = re.compile( r'\/\*\s*#(?:.*)\*\/' ) # /* #define FOO_BAR */
 
 class Converter:
 
@@ -130,6 +136,10 @@ class Converter:
         self.column_started = False
         self.inside_markup = False
         self.prev_indent = -1
+        self.total_lines = -1
+        self.line_index = -1
+        self.do_not_end = False
+        self.prev_line_empty = [False, -1]
 
     def convert(self, lines):
         """Perform conversion of old comment format to new commnet format
@@ -140,8 +150,12 @@ class Converter:
         # grab the newline character
         self.newlinechar = lines[0][-1]
 
+        # set total lines
+        self.total_lines = len( lines )
+
         for line in lines:
             self.line = line
+            self.line_index += 1
 
             if self.format == None:
                 # If no format or old comment block format
@@ -175,16 +189,30 @@ class Converter:
             
             else:
                 # If it is a normal line
+
+                if re_source_sep.match( self.line ) or re_source_old_format.start.match(self.line):
+                    # Set flag if line is empty
+                    self.prev_line_empty = [True, self.line_index]
+                elif self.line_index > self.prev_line_empty[-1] + 1:
+                    # Unset flag as it has expired
+                    self.prev_line_empty = [False, self.line_index]
+
+                # Process line
                 self.processLine()
+
+                if self.prev_line_empty[0] and self.do_not_end:
+                    # If previous line was empty and do_not_end is set
+                    newlines = newlines[:-1] # Discard empty line
+                    self.prev_line_empty = [False, self.line_index] # Unset flag
 
             # Push the changed line to list
             newlines.append(self.line)
         
-        if self.format == 1 and not self.ended:
+        if self.format == 1 and not self.ended and not self.do_not_end:
             # if comment block ends abruptly, close it
             endline = ' '*self.indent + ' */\n'
 
-            if re_source_sep.match(newlines[-1]):
+            if re_source_new_sep.match(newlines[-1]):
                 #If previous line is blank, replace it
                 newlines[-1] = endline
             else:
@@ -208,12 +236,23 @@ class Converter:
                 # comment block and should be retained
                 self.return_new = False
 
+            # Execption for commented #define lines
+            if re_source_define_line.match( self.line ):
+                if not self.do_not_end:
+                    # If we find the first commented #define line, we retain
+                    # it and instruct caller to NOT do anything else
+                    endline = ' '*self.indent + ' */\n'
+                    self.line = endline + self.line
+                    self.do_not_end = True
+                # Otherwise return line as it is
+                return
+
             m = re.search(re_source_old_format.column, self.line)
             n = re.search(re_source_new_format.column, self.line)
             if m or n:
+                # If the line is a documentation line
                 #Set the column_started flag
                 self.column_started = True
-                # If the line is a documentation line
                 # Replace /* with * and remove */ from the end
                 self.line = re.sub(re_source_strline, ' *',self.line, 1)
                 # Replace from the right to avoid touching
@@ -272,7 +311,7 @@ class Converter:
                                     # Set previous indent
                                     self.prev_indent = content_indent - 1
 
-            if re_source_old_format.start.match(self.line):
+            if re_source_old_format.start.match( self.line ):
                 # If line matches end of old comment block
                 # Replace the last line
                 # We match with start because end is tailored
@@ -301,9 +340,12 @@ class Converter:
         self.column_started = False
         self.inside_markup = False
         self.prev_indent = -1
+        self.total_lines = -1
+        self.line_index = -1
+        self.do_not_end = False
+        self.prev_line_empty = [False, self.line_index]
 
     def replaceTag(self):
-        #print("Old line len = ",len(self.line))
         tags = re.search(old_markup_tag_replace, self.line)
         tagname = tags.group(1)
         newtag = '@' + tagname + ":"
@@ -326,7 +368,8 @@ if __name__ == "__main__":
     /*    This section contains the declaration of Gzip-specific functions.  */
     /*                                                                       */
     /*************************************************************************/
-    '''
+/* #define THIS_LINE_WAS_MISSING */
+'''
     lines = []
     s =  StringIO(s)
     for line in s:
