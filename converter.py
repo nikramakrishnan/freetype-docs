@@ -236,7 +236,7 @@ class Converter:
                 # comment block and should be retained
                 self.return_new = False
 
-            # Execption for commented #define lines
+            # Exception for commented #define lines
             if re_source_define_line.match( self.line ):
                 if not self.do_not_end:
                     # If we find the first commented #define line, we retain
