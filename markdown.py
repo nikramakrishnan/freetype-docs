@@ -125,6 +125,7 @@ class Markify:
         self.inside_markup = False
         self.precontent = None
         self.content = None
+        self.in_code = False
         mdutils.end_table()
 
 
@@ -201,15 +202,28 @@ class Markify:
                 # Italics and Bold
                 #########################################
                 # handle markup for italic and bold
-                self.content = mdutils.emphasis( self.content )
-                self.line = self.precontent + self.content + self.newlinechar
+                if not self.in_code:
+                    # If not in a code block
+                    self.content = mdutils.emphasis( self.content )
+                    self.line = self.precontent + self.content + self.newlinechar
 
                 #########################################
                 # Field entries
                 #########################################
                 # handle markup for field entries
-                self.content = mdutils.table( self.precontent, self.content )
-                self.line = self.precontent + self.content + self.newlinechar
+                if not self.in_code:
+                    # If not in a code block
+                    self.content = mdutils.table( self.precontent, self.content )
+                    self.line = self.precontent + self.content + self.newlinechar
+
+                #########################################
+                # Quotes
+                #########################################
+                # handle markup for quotes
+                if not self.in_code:
+                    # If not in a code block
+                    self.content = mdutils.quotes( self.content )
+                    self.line = self.precontent + self.content + self.newlinechar
 
                 #########################################
                 # Code Blocks
@@ -219,9 +233,11 @@ class Markify:
                 if to_add == 1:
                     # Code block ended, we can add the line
                     self.line = self.precontent + self.content + self.newlinechar
+                    self.in_code = False
                 elif to_add == 2:
                     # We are in a code block, so don't add anything
                     self.line = ""
+                    self.in_code = True
                 # Otherwise self.line remains untouched
 
         if self.format == 2 and re_source_new_format.end.match(self.line):
@@ -240,6 +256,7 @@ class Markify:
         self.precontent = None
         self.content = None
         self.markup_status = 0
+        self.in_code = False
         mdutils.end_table()
 
 if __name__ == "__main__":

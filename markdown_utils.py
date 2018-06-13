@@ -20,6 +20,7 @@ Typical usage:
     mdutils.do_stuff( content )
 
 '''
+from __future__ import print_function
 import re
 
 # Variables to store field data
@@ -87,6 +88,18 @@ re_field = re.compile( r"""
 re_code_start = re.compile( r"(\s*){\s*$" )
 re_code_end   = re.compile( r"(\s*)}\s*$" )
 
+#
+# Regular expression to try and recognize code snippets within quotes.
+# It looks for a '_' or '.' in the text and categorizes it as an inline
+# code block. Manual cleanup may be required
+#
+re_inline_code   = re.compile( r"(^|\W)`((?:\w| |\.|\*)+[->_.+]+(?:\w| |\.)+)'(\W|$)" )
+
+# Try to find camelCase variable nemes
+re_inline_code_2 = re.compile( r"(^|\W)`([a-z|\d]+[A-Z]+(?:[a-z|A-Z|\d]+)?)'(\W|$)" )
+
+re_other_quote = re.compile( r"(^|\W)`(.*?)'(\W|$)" )
+
 
 def table( precontent, content ):
     '''Convert field entries to lighter syntax'''
@@ -109,6 +122,10 @@ def code_block( precontent, content ):
     content, to_add = convert_code_block( precontent, content )
     return content, to_add
 
+def quotes( content ):
+    '''Convert inline code snippet quotes to the markdown supported `foo`'''
+    line = convert_quotes( content )
+    return line
 
 def convert_table( precontent, content, indent ):
     '''Table converter internal function'''
@@ -270,5 +287,27 @@ def convert_code_block( precontent, line ):
             return None, 2
         else:
             return None, 0
+
+def convert_quotes( content ):
+    '''Quotes converter internal function'''
+    # We check if inline code may be present, and add a
+    # random sentinel to it, so that it can be replaced
+    # later.
+    line = re.sub( re_inline_code,
+                   r'\g<1>squots\g<2>squots\g<3>',
+                   content )
+    line = re.sub( re_inline_code_2,
+                   r'\g<1>squots\g<2>squots\g<3>',
+                   line )
+    line = re.sub( re_other_quote,
+                   r"\1'\2'\3",
+                   line )
+    # Replace all ` with ' because quotes accross multiple
+    # lines cannot be inline code sequences
+    line = line.replace( "`", "'" )
+    # Replace the squots sentinel with the actual symbol
+    line = line.replace( "squots", "`" )
+
+    return line
 
 # eof
