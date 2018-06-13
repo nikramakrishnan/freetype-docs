@@ -215,13 +215,12 @@ class Markify:
                 # Code Blocks
                 #########################################
                 # handle markup for code blocks
-                #global counter
                 self.content, to_add = mdutils.code_block( self.precontent, self.content )
                 if to_add == 1:
-                    # If code block ended and we can add the line
+                    # Code block ended, we can add the line
                     self.line = self.precontent + self.content + self.newlinechar
                 elif to_add == 2:
-                    # If we are in code block, so don't add anything
+                    # We are in a code block, so don't add anything
                     self.line = ""
                 # Otherwise self.line remains untouched
 
