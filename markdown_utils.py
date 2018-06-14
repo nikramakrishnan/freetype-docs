@@ -93,7 +93,7 @@ re_code_end   = re.compile( r"(\s*)}\s*$" )
 # It looks for a '_' or '.' in the text and categorizes it as an inline
 # code block. Manual cleanup may be required
 #
-re_inline_code   = re.compile( r"(^|\W)`((?:\w| |\.|\*)+[->_.+]+(?:\w| |\.)+)'(\W|$)" )
+re_inline_code   = re.compile( r"(^|\W)`((?:\w| |\.|\*)+(?:(?:\->)|[_.+=])+[\s\w\->_+.=]+)'(\W|$)" )
 
 # Try to find camelCase variable nemes
 re_inline_code_2 = re.compile( r"(^|\W)`([a-z|\d]+[A-Z]+(?:[a-z|A-Z|\d]+)?)'(\W|$)" )
@@ -294,10 +294,10 @@ def convert_quotes( content ):
     # random sentinel to it, so that it can be replaced
     # later.
     line = re.sub( re_inline_code,
-                   r'\g<1>squots\g<2>squots\g<3>',
+                   r'\g<1>/quot/\g<2>/quot/\g<3>',
                    content )
     line = re.sub( re_inline_code_2,
-                   r'\g<1>squots\g<2>squots\g<3>',
+                   r'\g<1>/quot/\g<2>/quot/\g<3>',
                    line )
     line = re.sub( re_other_quote,
                    r"\1'\2'\3",
@@ -305,8 +305,8 @@ def convert_quotes( content ):
     # Replace all ` with ' because quotes accross multiple
     # lines cannot be inline code sequences
     line = line.replace( "`", "'" )
-    # Replace the squots sentinel with the actual symbol
-    line = line.replace( "squots", "`" )
+    # Replace the /quot/ sentinel with the actual symbol
+    line = line.replace( "/quot/", "`" )
 
     return line
 
