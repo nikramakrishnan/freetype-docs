@@ -100,6 +100,9 @@ re_inline_code_2 = re.compile( r"(^|\W)`([a-z|\d]+[A-Z]+(?:[a-z|A-Z|\d]+)?)'(\W|
 
 re_other_quote = re.compile( r"(^|\W)`(.*?)'(\W|$)" )
 
+# Find new markup tags
+new_markup_tag = re.compile( r'''(\s*)@((?:\w|-)*):''' )  # @xxxx: format
+
 
 def table( precontent, content ):
     '''Convert field entries to lighter syntax'''
@@ -125,6 +128,11 @@ def code_block( precontent, content ):
 def quotes( content ):
     '''Convert inline code snippet quotes to the markdown supported `foo`'''
     line = convert_quotes( content )
+    return line
+
+def markup_tags( content ):
+    '''Convert markup tags from `@Foo:` to `@foo:`'''
+    line = convert_markup_tags( content )
     return line
 
 def convert_table( precontent, content, indent ):
@@ -309,5 +317,16 @@ def convert_quotes( content ):
     line = line.replace( "/quot/", "`" )
 
     return line
+
+def convert_markup_tags( content ):
+    '''Markup tags case internal function'''
+    tag = content
+    m = new_markup_tag.match( content )
+    if m:
+        spaces = m.group( 1 )
+        text = m.group( 2 )
+        text = text.lower()
+        tag  = spaces + "@" + text + ":"
+    return tag
 
 # eof

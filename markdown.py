@@ -226,6 +226,15 @@ class Markify:
                     self.line = self.precontent + self.content + self.newlinechar
 
                 #########################################
+                # Markup Tags case
+                #########################################
+                # lowercase markup tags
+                if not self.in_code:
+                    # If not in a code block
+                    self.content = mdutils.markup_tags( self.content )
+                    self.line = self.precontent + self.content + self.newlinechar
+
+                #########################################
                 # Code Blocks
                 #########################################
                 # handle markup for code blocks
