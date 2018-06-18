@@ -101,7 +101,7 @@ re_inline_code_2 = re.compile( r"(^|\W)`([a-z|\d]+[A-Z]+(?:[a-z|A-Z|\d]+)?)'(\W|
 re_other_quote = re.compile( r"(^|\W)`(.*?)'(\W|$)" )
 
 # Find new markup tags
-new_markup_tag = re.compile( r'''(\s*)@((?:\w|-)*):''' )  # @xxxx: format
+new_markup_tag = re.compile( r'''(\s*)@((?:\w|-)*):(.*)''' )  # @xxxx: format
 
 
 def table( precontent, content ):
@@ -324,9 +324,10 @@ def convert_markup_tags( content ):
     m = new_markup_tag.match( content )
     if m:
         spaces = m.group( 1 )
-        text = m.group( 2 )
-        text = text.lower()
-        tag  = spaces + "@" + text + ":"
+        text   = m.group( 2 )
+        other  = m.group( 3 )
+        text   = text.lower()
+        tag    = spaces + "@" + text + ":" + other
     return tag
 
 # eof
