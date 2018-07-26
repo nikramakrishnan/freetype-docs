@@ -32,6 +32,7 @@ except ImportError:
 import markdown_utils as mdutils
 
 
+
 ################################################################
 ##
 ##  SOURCE BLOCK FORMAT CLASS
@@ -109,33 +110,6 @@ re_source_new_format = DocBlockFormat( 2, start, column, end )
 
 old_markup_tag = re.compile( r'''<((?:\w|-)*)>''' )  # <xxxx> format
 new_markup_tag = re.compile( r'''\s*@((?:\w|-)*):''' )  # @xxxx: format
-
-#
-# A regular expression that stops collection of comments for the current
-# block.
-#
-re_source_sep = re.compile( r'\s*\*\s*' )   #  /* */
-
-re_source_strline = re.compile(r'\/\*')    # /*
-re_source_endline = re.compile(r'\*\/')    # */
-
-#
-# A regular expression to detect field definitions.
-#
-# Examples:
-#
-#   foo     ::
-#   foo.bar ::
-#
-re_field = re.compile( r"""
-                         \s*
-                           (
-                             \w*
-                           |
-                             \w (\w | \.)* \w
-                           )
-                         \s* ::
-                       """, re.VERBOSE )
         
 
 class Markify:
@@ -151,6 +125,7 @@ class Markify:
         self.inside_markup = False
         self.precontent = None
         self.content = None
+        self.in_code = False
         mdutils.end_table()
 
 
@@ -163,6 +138,8 @@ class Markify:
         newlines = []
         # grab the newline character
         self.newlinechar = lines[0][-1]
+        # set newlinechar in mdutils
+        mdutils.newlinechar = self.newlinechar
 
         for line in lines:
             self.line = line
@@ -218,23 +195,59 @@ class Markify:
                 self.precontent = m.group(1)
                 self.content = m.group(2)
                 self.content = self.content.rstrip()
-                #Set the column_started flag
+                # Set the column_started flag
                 self.column_started = True
 
+                #########################################
+                # Italics and Bold
+                #########################################
                 # handle markup for italic and bold
-                # NOTE: This is disabled for now to support current docmaker
-                # self.content = mdutils.emphasis( self.content )
-                # self.line = self.precontent + self.content + self.newlinechar
+                if not self.in_code:
+                    # If not in a code block
+                    self.content = mdutils.emphasis( self.content )
+                    self.line = self.precontent + self.content + self.newlinechar
 
+                #########################################
+                # Field entries
+                #########################################
                 # handle markup for field entries
-                self.content = mdutils.table( self.precontent, self.content )
-                self.line = self.precontent + self.content + self.newlinechar
+                if not self.in_code:
+                    # If not in a code block
+                    self.content = mdutils.table( self.precontent, self.content )
+                    self.line = self.precontent + self.content + self.newlinechar
 
-                            
-            
-            if re_source_old_format.start.match(self.line):
-                self.ended = True
-                self.inside_markup = False
+                #########################################
+                # Quotes
+                #########################################
+                # handle markup for quotes
+                if not self.in_code:
+                    # If not in a code block
+                    self.content = mdutils.quotes( self.content )
+                    self.line = self.precontent + self.content + self.newlinechar
+
+                #########################################
+                # Markup Tags case
+                #########################################
+                # lowercase markup tags
+                if not self.in_code:
+                    # If not in a code block
+                    self.content = mdutils.markup_tags( self.content )
+                    self.line = self.precontent + self.content + self.newlinechar
+
+                #########################################
+                # Code Blocks
+                #########################################
+                # handle markup for code blocks
+                self.content, to_add = mdutils.code_block( self.precontent, self.content )
+                if to_add == 1:
+                    # Code block ended, we can add the line
+                    self.line = self.precontent + self.content + self.newlinechar
+                    self.in_code = False
+                elif to_add == 2:
+                    # We are in a code block, so don't add anything
+                    self.line = ""
+                    self.in_code = True
+                # Otherwise self.line remains untouched
 
         if self.format == 2 and re_source_new_format.end.match(self.line):
             self.ended = True
@@ -252,6 +265,7 @@ class Markify:
         self.precontent = None
         self.content = None
         self.markup_status = 0
+        self.in_code = False
         mdutils.end_table()
 
 if __name__ == "__main__":
@@ -264,6 +278,7 @@ if __name__ == "__main__":
    * @Description:
    *   FreeType root face class structure.  A face object models a
    *   typeface in a font file.
+   *   Hello *this* *is*: _Something'_ _special_
    *
    * @Fields:
    *   num_faces           :: The number of faces in the font file.  Some
@@ -460,4 +475,5 @@ if __name__ == "__main__":
     newlines = c.convert(lines)
 
     print(''.join(newlines))
-    
+
+# eof
