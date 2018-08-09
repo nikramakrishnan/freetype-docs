@@ -188,7 +188,7 @@ class Markify:
             self.inside_markup = True
             mdutils.end_table()
 
-        if self.format == 2 and self.inside_markup:
+        if self.format == 2:
             m = re.search(re_source_new_format.column, self.line)
             if m:
                 # Get the beginning and push rest through markdown checks
